@@ -8,10 +8,10 @@ app.use(cors());
 app.use(express.json());
 
 const pool = mysql.createPool({
-    host: 'localhost',
+    host: 'mysql.railway.internal',
     user: 'root',
-    password: '', // Your MySQL password here
-    database: 'poultrybillingdb'
+    password: 'OtfPqlNcGpuRgEUgJwiDBhsDdTquYDkY', // Your MySQL password here
+    database: 'railway',
 });
 
 
