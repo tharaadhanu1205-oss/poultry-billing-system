@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poultry Pro | Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #38bdf8;
+            --accent-hover: #0ea5e9;
+            --text-main: #f1f5f9;
+            --text-dim: #94a3b8;
+            --glass: rgba(255, 255, 255, 0.05);
+            --success: #22c55e;
+            --error: #ef4444;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-main); display: flex; min-height: 100vh; }
+
+        .sidebar { width: 260px; background: var(--card-bg); border-right: 1px solid var(--glass); display: flex; flex-direction: column; padding: 20px; position: fixed; height: 100vh; z-index: 100; }
+        .logo { font-size: 1.5rem; font-weight: 600; color: var(--accent); margin-bottom: 40px; display: flex; align-items: center; gap: 10px; }
+        .nav-item { padding: 12px 15px; color: var(--text-dim); text-decoration: none; display: flex; align-items: center; gap: 12px; border-radius: 8px; margin-bottom: 8px; transition: 0.3s; cursor: pointer; border: none; background: none; width: 100%; font-size: 0.95rem; font-family: 'Poppins', sans-serif; text-align: left; }
+        .nav-item:hover { background: var(--glass); color: var(--accent); }
+        .nav-item.active { background: rgba(56,189,248,0.12); color: var(--accent); border-left: 3px solid var(--accent); }
+
+        .main-content { margin-left: 260px; flex: 1; padding: 30px; min-height: 100vh; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .page-title { font-size: 1.4rem; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .user-profile { display: flex; align-items: center; gap: 10px; background: var(--glass); padding: 5px 15px; border-radius: 50px; }
+
+        .page { display: none; }
+        .page.active { display: block; }
+
+        .card { background: var(--card-bg); padding: 25px; border-radius: 16px; margin-bottom: 25px; border: 1px solid var(--glass); }
+        .card-header { font-size: 1.05rem; font-weight: 500; margin-bottom: 20px; color: var(--accent); border-bottom: 1px solid var(--glass); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; align-items: end; }
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 0.85rem; color: var(--text-dim); }
+        input { width: 100%; padding: 12px; background: var(--bg-dark); border: 1px solid var(--glass); border-radius: 8px; color: white; transition: 0.3s; font-family: 'Poppins', sans-serif; }
+        input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(56,189,248,0.15); }
+        button { background: linear-gradient(135deg, var(--accent), var(--accent-hover)); color: white; padding: 12px 24px; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; transition: 0.3s; font-family: 'Poppins', sans-serif; }
+        button:hover { opacity: 0.9; transform: scale(1.02); }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: var(--card-bg); padding: 25px; border-radius: 16px; border: 1px solid var(--glass); transition: transform 0.3s; }
+        .stat-card:hover { transform: translateY(-4px); }
+        .stat-card h3 { font-size: 0.82rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-card .value { font-size: 1.9rem; font-weight: 600; margin-top: 8px; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; color: var(--text-dim); font-weight: 500; padding: 12px; border-bottom: 1px solid var(--glass); font-size: 0.82rem; text-transform: uppercase; }
+        td { padding: 12px; border-bottom: 1px solid var(--glass); font-size: 0.9rem; }
+        tr:hover td { background: var(--glass); }
+
+        #toast { position: fixed; bottom: 20px; right: 20px; padding: 14px 22px; border-radius: 8px; background: var(--card-bg); border-left: 4px solid var(--accent); box-shadow: 0 10px 20px rgba(0,0,0,0.3); display: none; z-index: 9000; animation: slideIn 0.3s ease; font-size: 0.9rem; }
+        @keyframes slideIn { from { transform: translateX(110%); } to { transform: translateX(0); } }
+
+        #loginOverlay { position: fixed; inset: 0; background: var(--bg-dark); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+
+        #cartPreview { margin-top: 20px; display: none; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 15px; }
+
+        .shortcut-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .shortcut-card { background: var(--card-bg); padding: 22px 15px; border-radius: 14px; border: 1px solid var(--glass); display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; transition: 0.3s; text-align: center; }
+        .shortcut-card:hover { transform: translateY(-4px); border-color: var(--accent); }
+        .shortcut-card i { font-size: 1.7rem; color: var(--accent); }
+        .shortcut-card span { font-size: 0.82rem; color: var(--text-dim); }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 70px; padding: 15px 8px; }
+            .sidebar .logo span, .nav-item span { display: none; }
+            .nav-item { justify-content: center; padding: 12px; }
+            .main-content { margin-left: 70px; padding: 15px; }
+        }
+        @media print {
+            body * { visibility: hidden; }
+            #receiptModal, #receiptModal * { visibility: visible; }
+            #receiptModal { position: absolute; left: 0; top: 0; background: white !important; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- LOGIN -->
+<div id="loginOverlay">
+    <div class="card" style="width:100%; max-width:400px;">
+        <div class="logo" style="margin-bottom:10px;"><i class="fas fa-kiwi-bird"></i> Poultry Pro</div>
+        <div class="card-header">System Login</div>
+        <form id="loginForm">
+            <div class="input-group" style="margin-bottom:15px;">
+                <label>Username</label>
+                <input type="text" id="username" placeholder="Enter admin username" required>
+            </div>
+            <div class="input-group" style="margin-bottom:20px;">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" style="width:100%;">Access Dashboard</button>
+        </form>
+    </div>
+</div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+    <div class="logo"><i class="fas fa-kiwi-bird"></i> <span>Poultry Pro</span></div>
+    <button class="nav-item active"  onclick="showPage('dashboard',this)"><i class="fas fa-home"></i>        <span>Dashboard</span></button>
+    <button class="nav-item"         onclick="showPage('billing',this)">  <i class="fas fa-file-invoice"></i><span>Billing</span></button>
+    <button class="nav-item"         onclick="showPage('inventory',this)"><i class="fas fa-boxes"></i>       <span>Inventory</span></button>
+    <button class="nav-item"         onclick="showPage('wastage',this)">  <i class="fas fa-trash-alt"></i>   <span>Wastage</span></button>
+    <button class="nav-item"         onclick="showPage('reports',this)">  <i class="fas fa-chart-line"></i>  <span>Reports</span></button>
+</nav>
+
+<main class="main-content">
+
+    <!-- ══════════ DASHBOARD ══════════ -->
+    <div id="page-dashboard" class="page active">
+        <header>
+            <div class="page-title">Dashboard Overview</div>
+            <div class="user-profile"><i class="fas fa-user-circle"></i><span>Admin User</span></div>
+        </header>
+        <div class="stats-grid">
+            <div class="stat-card"><h3>Total Sales</h3><div class="value" id="statSales">₹0</div></div>
+            <div class="stat-card"><h3>Total Wastage</h3><div class="value" id="statWaste" style="color:var(--error);">₹0</div></div>
+            <div class="stat-card"><h3>Net Profit</h3><div class="value" id="statProfit" style="color:var(--success);">₹0</div></div>
+        </div>
+        <div class="shortcut-grid">
+            <div class="shortcut-card" onclick="showPage('billing',  navBtn('billing'))">  <i class="fas fa-file-invoice"></i><span>New Bill</span></div>
+            <div class="shortcut-card" onclick="showPage('inventory',navBtn('inventory'))"><i class="fas fa-boxes"></i>       <span>Inventory</span></div>
+            <div class="shortcut-card" onclick="showPage('wastage',  navBtn('wastage'))">  <i class="fas fa-trash-alt"></i>   <span>Wastage</span></div>
+            <div class="shortcut-card" onclick="showPage('reports',  navBtn('reports'))">  <i class="fas fa-chart-bar"></i>   <span>Reports</span></div>
+        </div>
+        <div class="card">
+            <div class="card-header"><i class="fas fa-chart-area"></i> Revenue — Last 7 Days</div>
+            <div style="height:280px;"><canvas id="dashChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- ══════════ BILLING ══════════ -->
+    <div id="page-billing" class="page">
+        <header>
+            <div class="page-title"><i class="fas fa-file-invoice" style="color:var(--accent);"></i> Create Order</div>
+            <div class="user-profile"><i class="fas fa-user-circle"></i><span>Admin User</span></div>
+        </header>
+
+        <div class="card">
+            <div class="card-header"><i class="fas fa-shopping-cart"></i> Add Items to Cart</div>
+            <form id="orderForm" class="form-grid">
+                <div class="input-group">
+                    <label>Customer Name</label>
+                    <input type="text" id="billCustName" placeholder="Enter Customer Name" required>
+                </div>
+                <div class="input-group">
+                    <label>Product ID</label>
+                    <input type="number" id="prodId" placeholder="Product ID" required>
+                </div>
+                <div class="input-group">
+                    <label>Quantity (kg)</label>
+                    <input type="number" id="qty" placeholder="0.00" step="0.01" required>
+                </div>
+                <div class="input-group" style="justify-content:flex-end;">
+                    <button type="submit"><i class="fas fa-plus"></i> Add to Cart</button>
+                </div>
+            </form>
+
+            <div id="cartPreview">
+                <h4 style="color:var(--accent); font-size:0.9rem; margin-bottom:10px;">Items in Current Bill</h4>
+                <table style="font-size:0.85rem;">
+                    <thead><tr><th>Item</th><th>Qty</th><th>Total</th><th></th></tr></thead>
+                    <tbody id="cartTableBody"></tbody>
+                </table>
+                <div style="text-align:right; margin-top:15px; border-top:1px solid var(--glass); padding-top:10px;">
+                    <h3 id="cartGrandTotal" style="color:var(--success);">Total: ₹0.00</h3>
+                    <button type="button" onclick="printFinalBill()" style="background:var(--success); margin-top:10px;">
+                        <i class="fas fa-print"></i> Print Final Bill
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><i class="fas fa-list"></i> Available Products</div>
+            <table>
+                <thead><tr><th>ID</th><th>Product</th><th>Price/kg</th><th>Stock</th></tr></thead>
+                <tbody id="billingProductList"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ══════════ INVENTORY ══════════ -->
+    <div id="page-inventory" class="page">
+        <header>
+            <div class="page-title"><i class="fas fa-boxes" style="color:var(--accent);"></i> Inventory</div>
+            <div class="user-profile"><i class="fas fa-user-circle"></i><span>Admin User</span></div>
+        </header>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:25px;">
+            <div class="card" style="margin-bottom:0;">
+                <div class="card-header"><i class="fas fa-plus-circle"></i> Add New Product</div>
+                <form id="productForm">
+                    <div class="input-group" style="margin-bottom:15px;"><label>Product Name</label><input type="text" id="pname" placeholder="e.g. Country Chicken" required></div>
+                    <div class="input-group" style="margin-bottom:15px;"><label>Price Per Kg (₹)</label><input type="number" id="price" placeholder="0.00" step="0.01" required></div>
+                    <div class="input-group" style="margin-bottom:20px;"><label>Initial Stock (kg)</label><input type="number" id="stock" placeholder="0.00" step="0.01" required></div>
+                    <button type="submit" style="width:100%;">Save Product</button>
+                </form>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:20px;">
+                <div class="card" style="margin-bottom:0;">
+                    <div class="card-header"><i class="fas fa-tags"></i> Update Daily Price</div>
+                    <div class="form-grid">
+                        <div class="input-group"><label>Product ID</label><input type="number" id="p_id" placeholder="ID"></div>
+                        <div class="input-group"><label>New Price (₹)</label><input type="number" id="new_price" placeholder="0.00"></div>
+                        <button onclick="updatePrice()">Update</button>
+                    </div>
+                </div>
+                <div class="card" style="margin-bottom:0;">
+                    <div class="card-header"><i class="fas fa-user-plus"></i> Register Customer</div>
+                    <form id="customerForm">
+                        <div class="input-group" style="margin-bottom:10px;"><label>Full Name</label><input type="text" id="name" placeholder="Full Name" required></div>
+                        <div class="input-group" style="margin-bottom:10px;"><label>Phone</label><input type="text" id="phone" placeholder="Phone Number" required></div>
+                        <div class="input-group" style="margin-bottom:15px;"><label>Address</label><input type="text" id="address" placeholder="Address"></div>
+                        <button type="submit" style="width:100%;">Register</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><i class="fas fa-table"></i> All Products</div>
+            <div style="margin-bottom:15px; display:flex; align-items:center; background:var(--bg-dark); border:1px solid var(--glass); border-radius:8px; padding:5px 15px;">
+                <i class="fas fa-search" style="color:var(--text-dim); margin-right:10px;"></i>
+                <input type="text" id="prodSearch" placeholder="Search product..." onkeyup="filterProducts()" style="background:transparent; border:none; color:white; width:100%; height:35px; outline:none;">
+            </div>
+            <div id="stockAlerts" style="display:none; background:rgba(239,68,68,0.1); color:var(--error); padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid var(--error);"></div>
+            <table>
+                <thead><tr><th>ID</th><th>Product</th><th>Price/kg</th><th>Stock (kg)</th><th>Actions</th></tr></thead>
+                <tbody id="productList"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ══════════ WASTAGE ══════════ -->
+    <div id="page-wastage" class="page">
+        <header>
+            <div class="page-title"><i class="fas fa-trash-alt" style="color:var(--accent);"></i> Wastage Log</div>
+            <div class="user-profile"><i class="fas fa-user-circle"></i><span>Admin User</span></div>
+        </header>
+        <div class="card">
+            <div class="card-header"><i class="fas fa-exclamation-triangle"></i> Report Wastage</div>
+            <form id="wasteForm" class="form-grid">
+                <div class="input-group"><label>Product ID</label><input type="number" id="w_pid" placeholder="Product ID" required></div>
+                <div class="input-group"><label>Quantity (kg)</label><input type="number" id="w_qty" placeholder="0.00" step="0.01" required></div>
+                <div class="input-group"><label>Loss Amount (₹)</label><input type="number" id="w_cost" placeholder="0.00" required></div>
+                <div class="input-group" style="justify-content:flex-end;">
+                    <button type="submit" style="background:linear-gradient(135deg,#ef4444,#dc2626);">Log Wastage</button>
+                </div>
+            </form>
+        </div>
+        <div class="card">
+            <div class="card-header"><i class="fas fa-list"></i> Current Stock (Reference)</div>
+            <table>
+                <thead><tr><th>ID</th><th>Product</th><th>Price/kg</th><th>Stock</th></tr></thead>
+                <tbody id="wastageProductList"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ══════════ REPORTS ══════════ -->
+    <div id="page-reports" class="page">
+        <header>
+            <div class="page-title"><i class="fas fa-chart-line" style="color:var(--accent);"></i> Sales Reports</div>
+            <div class="user-profile"><i class="fas fa-user-circle"></i><span>Admin User</span></div>
+        </header>
+        <div class="stats-grid">
+            <div class="stat-card"><h3>Total Sales</h3><div class="value" id="rptSales">₹0</div></div>
+            <div class="stat-card"><h3>Total Wastage</h3><div class="value" id="rptWaste" style="color:var(--error);">₹0</div></div>
+            <div class="stat-card"><h3>Net Profit</h3><div class="value" id="rptProfit" style="color:var(--success);">₹0</div></div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-bar"></i> Revenue — Last 7 Days
+                <button onclick="loadReportChart()" style="margin-left:auto; padding:8px 16px; font-size:0.8rem;"><i class="fas fa-sync"></i> Refresh</button>
+            </div>
+            <div style="height:300px;"><canvas id="salesChart"></canvas></div>
+        </div>
+    </div>
+
+</main>
+
+<!-- RECEIPT MODAL -->
+<div id="receiptModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:white; padding:30px; border-radius:10px; width:370px; position:relative; box-shadow:0 20px 40px rgba(0,0,0,0.5); max-height:90vh; overflow-y:auto;">
+        <button onclick="closeAndReset()" class="no-print"
+            style="position:absolute; top:10px; right:10px; border:none; background:#ef4444; color:white; font-size:16px; font-weight:bold; width:32px; height:32px; border-radius:50%; cursor:pointer; line-height:1;">&times;</button>
+        <div id="receiptContent"></div>
+    </div>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────
+let currentCart = [];
+let myChart     = null;
+let dashChart   = null;
+
+// ─── ROUTER ──────────────────────────────────
+function navBtn(pageId) {
+    return document.querySelector(`.nav-item[onclick*="${pageId}"]`);
+}
+
+function showPage(pageId, clickedBtn) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('page-' + pageId).classList.add('active');
+    if (clickedBtn) clickedBtn.classList.add('active');
+    window.scrollTo(0, 0);
+
+    if (pageId === 'dashboard') { getReport(); loadDashChart(); }
+    if (pageId === 'billing')   { loadBillingProducts(); }
+    if (pageId === 'inventory') { loadProducts(); }
+    if (pageId === 'wastage')   { loadWastageProducts(); }
+    if (pageId === 'reports')   { loadReportData(); loadReportChart(); }
+}
+
+// ─── TOAST ───────────────────────────────────
+function showToast(msg, type = 'success') {
+    const t = document.getElementById("toast");
+    t.innerText = msg;
+    t.style.display = "block";
+    t.style.borderLeftColor = type === 'success' ? 'var(--success)' : 'var(--error)';
+    setTimeout(() => t.style.display = "none", 3000);
+}
+
+// ─── LOGIN ───────────────────────────────────
+document.getElementById("loginForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    fetch("http://localhost:5000/login", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ Username: document.getElementById("username").value, Password: document.getElementById("password").value })
+    })
+    .then(res => res.text())
+    .then(data => {
+        if (data === "Login Success") {
+            document.getElementById("loginOverlay").style.display = "none";
+            showToast("Welcome back, Admin!");
+            getReport(); loadDashChart();
+        } else { showToast(data, 'error'); }
+    })
+    .catch(() => showToast("Server not responding!", 'error'));
+});
+
+// ─── PRODUCTS (shared) ───────────────────────
+function fetchProducts(callback) {
+    fetch("http://localhost:5000/products")
+        .then(res => res.json()).then(callback)
+        .catch(err => console.error("Product fetch failed:", err));
+}
+
+function renderTable(tbodyId, data, withActions) {
+    const list = document.getElementById(tbodyId);
+    if (!list) return;
+    list.innerHTML = "";
+    data.forEach(p => {
+        const id    = p.Product_ID    || p.id           || p.product_id;
+        const name  = p.Product_Name  || p.product_name || p.name;
+        const price = p.Price_Per_Kg  || p.Price        || p.price || 0;
+        const stock = p.Stock_Quantity|| p.stock_quantity|| p.stock || 0;
+        const actions = withActions ? `<td>
+            <button onclick="openEditModal(${id},'${name}',${price},${stock})" style="background:#f59e0b;color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;">Edit</button>
+            <button onclick="deleteProduct(${id})" style="background:#ef4444;color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;margin-left:5px;">Delete</button>
+        </td>` : '';
+        list.innerHTML += `<tr><td>#${id}</td><td>${name}</td><td>₹${parseFloat(price).toFixed(2)}</td><td>${parseFloat(stock).toFixed(2)} kg</td>${actions}</tr>`;
+    });
+}
+
+function loadProducts()        { fetchProducts(d => renderTable('productList', d, true)); }
+function loadBillingProducts() { fetchProducts(d => renderTable('billingProductList', d, false)); }
+function loadWastageProducts() { fetchProducts(d => renderTable('wastageProductList', d, false)); }
+
+// ─── ADD PRODUCT ─────────────────────────────
+document.getElementById("productForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    fetch("http://localhost:5000/add-product", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: document.getElementById("pname").value, price: document.getElementById("price").value, stock: document.getElementById("stock").value })
+    })
+    .then(res => res.json())
+    .then(() => { showToast("Product added!"); document.getElementById("productForm").reset(); loadProducts(); })
+    .catch(() => showToast("Error adding product", 'error'));
+});
+
+// ─── DELETE / EDIT ───────────────────────────
+function deleteProduct(id) {
+    if (!confirm("Delete this product?")) return;
+    fetch(`http://localhost:5000/delete-product/${id}`, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(data => { showToast(data.message || "Deleted!"); loadProducts(); })
+        .catch(() => showToast("Could not delete", 'error'));
+}
+
+function openEditModal(id, name, price, stock) {
+    const newPrice = prompt(`New Price for ${name} (Current: ₹${price}):`, price);
+    if (newPrice === null || newPrice === "") return;
+    const newStock = prompt(`New Stock for ${name} (Current: ${stock}kg):`, stock);
+    if (newStock === null || newStock === "") return;
+    const data = { Price: parseFloat(newPrice), Stock: parseFloat(newStock) };
+    if (isNaN(data.Price) || isNaN(data.Stock)) { alert("Enter valid numbers!"); return; }
+    fetch(`http://localhost:5000/update-product/${id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(d => { showToast(d.message || "Updated!"); loadProducts(); })
+    .catch(() => showToast("Update failed", 'error'));
+}
+
+// ─── UPDATE PRICE ─────────────────────────────
+function updatePrice() {
+    const pId = document.getElementById("p_id").value;
+    const pr  = document.getElementById("new_price").value;
+    if (!pId || !pr) { showToast("Fill both fields", 'error'); return; }
+    fetch("http://localhost:5000/update-price", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ProductID: pId, Price: pr })
+    })
+    .then(res => res.json())
+    .then(() => { showToast("Price updated!"); loadProducts(); })
+    .catch(() => showToast("Update failed", 'error'));
+}
+
+// ─── REGISTER CUSTOMER ───────────────────────
+document.getElementById("customerForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    fetch("http://localhost:5000/add-customer", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ Name: document.getElementById("name").value, Phone: document.getElementById("phone").value, Address: document.getElementById("address").value })
+    })
+    .then(res => res.text())
+    .then(msg => { showToast(msg); document.getElementById("customerForm").reset(); })
+    .catch(() => showToast("Server connection failed!", 'error'));
+});
+
+// ─── FILTER ──────────────────────────────────
+function filterProducts() {
+    const filter = document.getElementById("prodSearch").value.toLowerCase();
+    document.querySelectorAll("#productList tr").forEach(row => {
+        row.style.display = row.cells[1]?.textContent.toLowerCase().includes(filter) ? "" : "none";
+    });
+}
+
+// ─── BILLING CART ────────────────────────────
+document.getElementById("orderForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    const pIdInput = document.getElementById("prodId").value.trim();
+    const qty      = parseFloat(document.getElementById("qty").value);
+    let pName = "", pPrice = 0, found = false;
+
+    document.querySelectorAll("#billingProductList tr").forEach(row => {
+        if (row.cells[0].innerText.replace('#','').trim() === pIdInput) {
+            found  = true;
+            pName  = row.cells[1].innerText.trim();
+            pPrice = parseFloat(row.cells[2].innerText.replace(/[^0-9.]/g, ''));
+        }
+    });
+
+    if (!found || isNaN(pPrice) || qty <= 0) { showToast("Product not found or invalid qty!", 'error'); return; }
+
+    currentCart.push({ id: pIdInput, name: pName, price: pPrice, qty, total: pPrice * qty });
+    updateCartUI();
+    document.getElementById("prodId").value = "";
+    document.getElementById("qty").value    = "";
+    showToast(`${pName} added to cart`);
+});
+
+function updateCartUI() {
+    const tbody = document.getElementById("cartTableBody");
+    let grand   = 0;
+    tbody.innerHTML = "";
+    currentCart.forEach((item, i) => {
+        grand += item.total;
+        tbody.innerHTML += `<tr>
+            <td>${item.name}</td><td>${item.qty} kg</td><td>₹${item.total.toFixed(2)}</td>
+            <td><i class="fas fa-trash" style="color:var(--error);cursor:pointer;" onclick="removeFromCart(${i})"></i></td>
+        </tr>`;
+    });
+    document.getElementById("cartGrandTotal").innerText = `Total: ₹${grand.toFixed(2)}`;
+    document.getElementById("cartPreview").style.display = currentCart.length > 0 ? "block" : "none";
+}
+
+function removeFromCart(i) { currentCart.splice(i, 1); updateCartUI(); }
+
+async function printFinalBill() {
+    if (currentCart.length === 0) { showToast("Cart is empty!", 'error'); return; }
+    const customerName = document.getElementById("billCustName").value || "Walk-in Customer";
+    const totalAmount  = currentCart.reduce((s, i) => s + i.total, 0);
+    try {
+        const response = await fetch("http://127.0.0.1:5000/generate-bill-bulk", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ CustomerName: customerName, Items: currentCart, TotalAmount: totalAmount })
+        });
+        if (response.ok) { generateReceipt(customerName, [...currentCart]); }
+        else { showToast("Server Error: " + await response.text(), 'error'); }
+    } catch { showToast("Server not responding. Is node server.js running?", 'error'); }
+}
+
+// ─── RECEIPT ─────────────────────────────────
+function generateReceipt(customer, cartItems) {
+    if (!Array.isArray(cartItems)) return;
+    let billNo = parseInt(localStorage.getItem('lastBillNo') || 0) + 1;
+    localStorage.setItem('lastBillNo', billNo);
+    const grand = cartItems.reduce((s, i) => s + i.total, 0);
+    const date  = new Date();
+
+    const rows = cartItems.map(i => `
+        <tr>
+            <td style="padding:8px 0;text-align:left;"><b>${i.name}</b><br><small>${i.qty} kg × ₹${i.price.toFixed(2)}</small></td>
+            <td align="right" style="padding:8px 0;vertical-align:top;">₹${i.total.toFixed(2)}</td>
+        </tr>`).join('');
+
+    document.getElementById("receiptContent").innerHTML = `
+        <div style="text-align:center;font-family:sans-serif;color:#000;">
+            <h2 style="margin:0;letter-spacing:1px;">POULTRY PRO SHOP</h2>
+            <p style="font-size:12px;margin:2px;">Tiruchirappalli, Tamil Nadu</p>
+            <p style="font-size:13px;font-weight:bold;margin:2px;">📞 Ph: +91 98765 43210</p>
+            <div style="border-bottom:1px dashed #000;margin:10px 0;"></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;">
+                <span><b>Bill No:</b> #${billNo}</span>
+                <span><b>Date:</b> ${date.toLocaleDateString()}</span>
+            </div>
+            <p style="text-align:left;margin:5px 0;"><b>Customer:</b> ${customer}</p>
+            <table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:14px;">
+                <tr style="border-bottom:1px solid #000;"><th align="left">Item</th><th align="right">Total</th></tr>
+                ${rows}
+            </table>
+            <div style="border-bottom:1px dashed #000;margin:15px 0;"></div>
+            <h3 style="text-align:right;margin:0;">GRAND TOTAL: ₹${grand.toFixed(2)}</h3>
+            <p style="text-align:center;font-size:11px;margin-top:25px;"><b>-- THANK YOU! VISIT AGAIN --</b><br><span style="font-size:9px;color:#888;">System generated receipt</span></p>
+            <button onclick="window.print()" class="no-print" style="margin-top:10px;padding:8px 20px;cursor:pointer;background:#0ea5e9;color:white;border:none;border-radius:6px;font-weight:600;">🖨️ Print</button>
+        </div>`;
+    document.getElementById("receiptModal").style.display = "flex";
+}
+
+function closeAndReset() {
+    document.getElementById("receiptModal").style.display = "none";
+    currentCart = [];
+    updateCartUI();
+    const c = document.getElementById("billCustName");
+    if (c) c.value = "";
+    getReport();
+    loadBillingProducts();
+}
+
+// ─── WASTAGE ─────────────────────────────────
+document.getElementById("wasteForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    fetch("http://localhost:5000/add-wastage", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ProductID: document.getElementById("w_pid").value, Quantity: parseFloat(document.getElementById("w_qty").value) || 0, Cost: parseFloat(document.getElementById("w_cost").value) || 0 })
+    })
+    .then(res => {
+        if (res.ok) { showToast("Wastage logged!"); document.getElementById("wasteForm").reset(); loadWastageProducts(); getReport(); }
+        else showToast("Error logging wastage", 'error');
+    })
+    .catch(() => showToast("Server not responding!", 'error'));
+});
+
+// ─── REPORTS ─────────────────────────────────
+function getReport() {
+    fetch("http://localhost:5000/sales-report")
+        .then(res => res.json())
+        .then(data => {
+            const s = parseFloat(data.Totalsales) || 0;
+            const w = parseFloat(data.TotalWaste)  || 0;
+            const p = parseFloat(data.Profit)       || 0;
+            document.getElementById("statSales").innerText  = `₹${s.toFixed(2)}`;
+            document.getElementById("statWaste").innerText  = `₹${w.toFixed(2)}`;
+            document.getElementById("statProfit").innerText = `₹${p.toFixed(2)}`;
+            document.getElementById("statProfit").style.color = p >= 0 ? "var(--success)" : "var(--error)";
+        }).catch(console.error);
+}
+
+function loadReportData() {
+    fetch("http://localhost:5000/sales-report")
+        .then(res => res.json())
+        .then(data => {
+            const s = parseFloat(data.Totalsales) || 0;
+            const w = parseFloat(data.TotalWaste)  || 0;
+            const p = parseFloat(data.Profit)       || 0;
+            document.getElementById("rptSales").innerText  = `₹${s.toFixed(2)}`;
+            document.getElementById("rptWaste").innerText  = `₹${w.toFixed(2)}`;
+            document.getElementById("rptProfit").innerText = `₹${p.toFixed(2)}`;
+            document.getElementById("rptProfit").style.color = p >= 0 ? "var(--success)" : "var(--error)";
+        });
+}
+
+function renderChart(canvasId, data, isMain) {
+    const labels = data.map(i => new Date(i.date).toLocaleDateString('en-IN', { day:'2-digit', month:'short' }));
+    const values = data.map(i => parseFloat(i.totalSales) || 0);
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    if (isMain  && myChart)   { myChart.destroy();   myChart   = null; }
+    if (!isMain && dashChart) { dashChart.destroy();  dashChart = null; }
+    const chart = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: { labels, datasets: [{ label:'Revenue (₹)', data: values, borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,0.1)', fill:true, tension:0.4, pointRadius:4, pointBackgroundColor:'#38bdf8' }] },
+        options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+            scales: { y:{ beginAtZero:true, grid:{ color:'rgba(255,255,255,0.05)' }, ticks:{ color:'#94a3b8' } }, x:{ grid:{ display:false }, ticks:{ color:'#94a3b8' } } } }
+    });
+    if (isMain)  myChart   = chart;
+    else         dashChart = chart;
+}
+
+function loadReportChart() { fetch("http://localhost:5000/sales-report-date").then(r => r.json()).then(d => { if (d?.length) renderChart('salesChart', d, true);  }).catch(console.error); }
+function loadDashChart()   { fetch("http://localhost:5000/sales-report-date").then(r => r.json()).then(d => { if (d?.length) renderChart('dashChart',  d, false); }).catch(console.error); }
+
+// ─── INIT ─────────────────────────────────────
+getReport();
+</script>
+</body>
+</html>
